@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>打卡系统</title>
+    <link rel="stylesheet" href="cet.css">
+    </link>
+</head>
+
+<body>
+    <div id="countdown" class="countdown"></div>
+    <div class="container">
+        <h2>每日打卡</h2>
+        <div class="action-buttons">
+            <button onclick="exportData()">导出数据</button>
+            <input type="file" id="importInput" accept=".json" onchange="importData(event)">
+            <button onclick="document.getElementById('importInput').click()">导入数据</button>
+        </div>
+        <form id="checkInForm" class="check-in-form">
+            <div class="form-group">
+                <label for="content">打卡内容：</label>
+                <textarea id="content" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="image">上传图片：</label>
+                <input type="file" id="image" accept="image/*" required>
+                <div class="preview-container">
+                    <img id="preview">
+                </div>
+            </div>
+
+            <button type="submit">打卡</button>
+        </form>
+
+        <div class="records">
+            <h3>打卡记录</h3>
+            <div id="recordsList"></div>
+        </div>
+    </div>
+    <script src="cet.js">    </script>
+</body>
+
+</html>
