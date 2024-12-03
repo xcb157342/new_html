@@ -1,12 +1,211 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html>
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>打卡系统</title>
-    <link rel="stylesheet" href="cet.css">
-    </link>
+    </meta>
+    <title>加油六级</title>
+    <style>
+        .countdown {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 60px auto 20px;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .record-images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .record-image-container {
+            width: 100%;
+            height: 150px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .record-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #previewContainer {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .preview-container {
+            width: 100%;
+            height: 150px;
+            margin: 0;
+            border: 1px dashed #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-color: #f5f5f5;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .records {
+            margin-top: 20px;
+        }
+
+        .date-group {
+            margin-bottom: 30px;
+            border: 2px solid #4CAF50;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .date-header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            font-weight: bold;
+        }
+
+        .date-records {
+            padding: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .record-item {
+            flex: 1 1 calc(50% - 15px);
+            min-width: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        .action-buttons {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        #importInput {
+            display: none;
+        }
+
+        .check-in-form {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+        }
+
+        .delete-btn {
+            margin-top: 10px;
+            width: 100%;
+            background-color: #ff4444;
+        }
+
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            cursor: pointer;
+        }
+
+        .modal-image {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90vh;
+            position: relative;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .record-image {
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .record-image:hover {
+            opacity: 0.8;
+        }
+    </style>
 </head>
 
 <body>
@@ -26,10 +225,8 @@
 
             <div class="form-group">
                 <label for="image">上传图片：</label>
-                <input type="file" id="image" accept="image/*" multiple>
-                <div class="preview-container">
-                    <img id="preview">
-                </div>
+                <input type="file" id="image" accept="image/*" multiple required>
+                <div id="previewContainer"></div>
             </div>
 
             <button type="submit">打卡</button>
@@ -39,8 +236,300 @@
             <h3>打卡记录</h3>
             <div id="recordsList"></div>
         </div>
+        <div id="imageModal" class="modal" onclick="closeModal()">
+            <img id="modalImage" class="modal-image">
+        </div>
     </div>
-    <script src="cet.js">    </script>
+
+    <script>
+        function updateCountdown() {
+            const targetDate = new Date('2024-12-14T00:00:00');
+            const now = new Date();
+            const diff = targetDate - now;
+
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+
+            document.getElementById('countdown').innerText =
+                `距离六级考试还有 ${days}天 ${hours}小时`;
+        }
+
+        updateCountdown();
+        setInterval(updateCountdown, 1000 * 60 * 60);
+
+        function groupRecordsByDate(records) {
+            const groups = {};
+            records.forEach(record => {
+                const date = new Date(record.completionTime).toLocaleDateString();
+                if (!groups[date]) {
+                    groups[date] = [];
+                }
+                groups[date].push(record);
+            });
+            return groups;
+        }
+
+        function showModal(imageSrc) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+        }
+
+        function closeModal() {
+            document.getElementById('imageModal').style.display = 'none';
+        }
+
+        function loadRecords() {
+            const records = JSON.parse(localStorage.getItem('checkInRecords') || '[]');
+            const recordsList = document.getElementById('recordsList');
+            recordsList.innerHTML = '';
+
+            const groupedRecords = groupRecordsByDate(records);
+
+            Object.entries(groupedRecords)
+                .sort(([dateA], [dateB]) => new Date(dateB) - new Date(dateA))
+                .forEach(([date, dateRecords]) => {
+                    const dateGroup = document.createElement('div');
+                    dateGroup.className = 'date-group';
+
+                    const dateHeader = document.createElement('div');
+                    dateHeader.className = 'date-header';
+                    dateHeader.textContent = date;
+                    dateGroup.appendChild(dateHeader);
+
+                    const dateRecordsDiv = document.createElement('div');
+                    dateRecordsDiv.className = 'date-records';
+
+                    dateRecords.forEach((record) => {
+                        const recordDiv = document.createElement('div');
+                        recordDiv.className = 'record-item';
+                        const time = new Date(record.completionTime).toLocaleTimeString();
+
+                        let imagesHTML = '';
+                        if (Array.isArray(record.imageData)) {
+                            imagesHTML = record.imageData.map(imgData => `
+                                <div class="record-image-container">
+                                    <img src="${imgData}" class="record-image" alt="打卡图片" onclick="showModal('${imgData}')">
+                                </div>
+                            `).join('');
+                        } else if (record.imageData) {
+                            imagesHTML = `
+                                <div class="record-image-container">
+                                    <img src="${record.imageData}" class="record-image" alt="打卡图片" onclick="showModal('${record.imageData}')">
+                                </div>
+                            `;
+                        }
+
+                        recordDiv.innerHTML = `
+                            <p><strong>时间：</strong>${time}</p>
+                            <p><strong>内容：</strong>${record.content}</p>
+                            <div class="record-images-grid">
+                                ${imagesHTML}
+                            </div>
+                            <button onclick="deleteRecord('${record.timestamp}')" class="delete-btn">删除</button>
+                        `;
+                        dateRecordsDiv.appendChild(recordDiv);
+                    });
+
+                    dateGroup.appendChild(dateRecordsDiv);
+                    recordsList.appendChild(dateGroup);
+                });
+        }
+
+        function deleteRecord(timestamp) {
+            if (confirm('确定要删除这条记录吗？')) {
+                const records = JSON.parse(localStorage.getItem('checkInRecords') || '[]');
+                const index = records.findIndex(record => record.timestamp.toString() === timestamp.toString());
+                if (index !== -1) {
+                    records.splice(index, 1);
+                    localStorage.setItem('checkInRecords', JSON.stringify(records));
+                    loadRecords();
+                }
+            }
+        }
+
+        function updateImagePreviews(files) {
+            const previewContainer = document.getElementById('previewContainer');
+            previewContainer.innerHTML = '';
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'preview-container';
+                const img = document.createElement('img');
+                img.className = 'preview-image';
+
+                reader.onload = function (e) {
+                    img.src = e.target.result;
+                }
+
+                previewDiv.appendChild(img);
+                previewContainer.appendChild(previewDiv);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        document.getElementById('image').addEventListener('change', function (e) {
+            updateImagePreviews(this.files);
+        });
+        function compressImage(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.7));
+                    };
+                };
+            });
+        }
+        document.getElementById('checkInForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const content = document.getElementById('content').value;
+            const imageFiles = document.getElementById('image').files;
+            const currentTime = new Date().toISOString();
+
+            if (!content.trim() || imageFiles.length === 0) {
+                alert('请填写内容并上传至少一张图片！');
+                return;
+            }
+
+            try {
+                const imageDataPromises = Array.from(imageFiles).map(file => compressImage(file));
+                const imageDataArray = await Promise.all(imageDataPromises);
+
+                const records = JSON.parse(localStorage.getItem('checkInRecords') || '[]');
+                records.unshift({
+                    content,
+                    completionTime: currentTime,
+                    imageData: imageDataArray,
+                    timestamp: new Date().getTime()
+                });
+
+                // 仅保留最近30天的记录
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const filteredRecords = records.filter(record =>
+                    new Date(record.completionTime) > thirtyDaysAgo
+                );
+
+                localStorage.setItem('checkInRecords', JSON.stringify(filteredRecords));
+                loadRecords();
+                document.getElementById('checkInForm').reset();
+                document.getElementById('previewContainer').innerHTML = '';
+                alert('打卡成功！');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('打卡失败，请重试');
+            }
+        });
+
+        function exportData() {
+            const records = JSON.parse(localStorage.getItem('checkInRecords') || '[]');
+            if (records.length === 0) {
+                alert('没有可导出的数据！');
+                return;
+            }
+
+            const exportData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                records: records
+            };
+
+            const jsonString = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `打卡记录_${new Date().toLocaleDateString()}.json`;
+
+            document.body.appendChild(a);
+            a.click();
+
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                const text = await file.text();
+                const importedData = JSON.parse(text);
+
+                if (!importedData.records || !Array.isArray(importedData.records)) {
+                    throw new Error('无效的数据格式');
+                }
+
+                const existingRecords = JSON.parse(localStorage.getItem('checkInRecords') || '[]');
+                const confirmMessage = existingRecords.length > 0 ?
+                    '是否将导入的数据与现有数据合并？\n点击"确定"合并数据，点击"取消"替换现有数据。' :
+                    '确认导入数据？';
+
+                if (confirm(confirmMessage)) {
+                    if (existingRecords.length > 0) {
+                        const mergedRecords = [...existingRecords];
+
+                        importedData.records.forEach(importedRecord => {
+                            const exists = mergedRecords.some(
+                                record => record.timestamp === importedRecord.timestamp
+                            );
+                            if (!exists) {
+                                mergedRecords.push(importedRecord);
+                            }
+                        });
+
+                        mergedRecords.sort((a, b) => b.timestamp - a.timestamp);
+
+                        localStorage.setItem('checkInRecords', JSON.stringify(mergedRecords));
+                    } else {
+                        localStorage.setItem('checkInRecords', JSON.stringify(importedData.records));
+                    }
+                } else if (existingRecords.length > 0) {
+                    localStorage.setItem('checkInRecords', JSON.stringify(importedData.records));
+                }
+
+                loadRecords();
+                alert('数据导入成功！');
+
+            } catch (error) {
+                console.error('导入错误:', error);
+                alert('导入失败：' + error.message);
+            }
+
+            event.target.value = '';
+        }
+
+        loadRecords();
+    </script>
 </body>
 
 </html>
